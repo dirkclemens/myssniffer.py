@@ -16,6 +16,7 @@
 import socket
 import sys
 import datetime
+import re
 
 TCP_RECV_BUFFER_SIZE = 1024 
 
@@ -39,19 +40,6 @@ mysInternalTypes = ['battery_level','time','version','id_request','id_response',
 mysStreamCodes 	= ['ST_FIRMWARE_CONFIG_REQUEST','ST_FIRMWARE_CONFIG_RESPONSE','ST_FIRMWARE_REQUEST','ST_FIRMWARE_RESPONSE','ST_SOUND','ST_IMAGE']
 mysStreamTypes	= ['firmware_config_request','firmware_config_response','firmware_request','firmware_response','sound','image']
 
-import re
-def pt(string):
-	# return string.rstrip().replace(' ', '')
-	# return ''.join(e for e in string if e.isalnum())
-#	return re.sub('[^A-Za-z0-9.._<sp>]+', '', string)
-	#return re.sub('[^a-zA-Z0-9.._<sp>\r\n-_x*.]+', '^', string.encode("utf-8"))
-	return re.sub('[^A-Za-z0-9.._\r\n-_x*.<sp> ]+', ' ', string)
-	#lst = list(''.join(e for e in string if e.isalnum())) 
-	#news = [re.sub('[^a-zA-Z0-9\r\n-_x*.]', '', str(i)) for i in lst]
-	#news = [hex(ord(i)) for i in lst]
-	#news = [char if char.isspace() else hex(ord(char)) for char in lst]
-	#return ''.join(news)
-	
 def pt2(string):
 	legal = set('.,;/%°?~+-_abcdefghijklmnopqrstuvwxyz0123456789')
 	s = ''.join(char if char.lower() in legal else ' ' for char in string)
