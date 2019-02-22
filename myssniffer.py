@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+
 """ 
 	MYSSniffer 	Dirk Clemens (iot@adcore.de)
 
@@ -8,6 +9,7 @@
 
 	history:
 	1.0			2017-04-21		1st rough basic version (read/parse messages only)	
+	2.0			2018-01-13		compatibility to mysensors 2.2
 
 """
 
@@ -31,71 +33,113 @@ mysSetReqCodes = ['V_TEMP','V_HUM','V_STATUS','V_PERCENTAGE','V_PRESSURE','V_FOR
 mysSetReqTypes = ['temp','hum','status','percentage','pressure','forecast','rain','rainrate','wind','gust','direction','uv','weight','distance','impedance','armed','tripped','watt','kwh','scene_on','scene_off','hvac_flow_state','hvac_speed','light_level','var1','var2','var3','var4','var5','up','down','stop','ir_send','ir_receive','flow','volume','lock_status','level','voltage','current','rgb','rgbw','id','unit_prefix','hvac_setpoint_cool','hvac_setpoint_heat','hvac_flow_mode','text','custom','position','ir_record','ph','orp','ec','var','va','power_factor']
 mysSetReqUnits = ['°C','%',' ','%','mB','forecast','rain','rainrate','wind','gust','°',' ','kg','m','ohm',' ',' ','W','kwh',' ',' ',' ',' ','lux',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ','m','m³','  ',' ','V','A',' ',' ',' ',' ','  ',' ',' ',' ',' ',' ',' ','ph ','mV','μS/cm','var','va',' ']
 
-mysInternalCodes = ['I_BATTERY_LEVEL','I_TIME','I_VERSION','I_ID_REQUEST','I_ID_RESPONSE','I_INCLUSION_MODE','I_CONFIG','I_FIND_PARENT','I_FIND_PARENT_RESPONSE','I_LOG_MESSAGE','I_CHILDREN','I_SKETCH_NAME','I_SKETCH_VERSION','I_REBOOT','I_GATEWAY_READY','I_REQUEST_SIGNING','I_GET_NONCE','I_GET_NONCE_RESPONSE','I_HEARTBEAT','I_PRESENTATION','I_DISCOVER','I_DISCOVER_RESPONSE','I_HEARTBEAT_RESPONSE','I_LOCKED ','I_PING','I_PONG','I_REGISTRATION_REQUEST','I_REGISTRATION_RESPONSE','I_DEBUG']
-mysInternalTypes = ['battery_level','time','version','id_request','id_response','inclusion_mode','config','find_parent','find_parent_response','log_message','children','sketch_name','sketch_version','reboot','gateway_ready','request_signing','get_nonce','get_nonce_response','heartbeat','presentation','discover','discover_response','heartbeat_response','locked ','ping','pong','registration_request','registration_response','debug']
+mysInternalCodes = ['I_BATTERY_LEVEL','I_TIME','I_VERSION','I_ID_REQUEST','I_ID_RESPONSE','I_INCLUSION_MODE','I_CONFIG','I_FIND_PARENT','I_FIND_PARENT_RESPONSE','I_LOG_MESSAGE','I_CHILDREN','I_SKETCH_NAME','I_SKETCH_VERSION','I_REBOOT','I_GATEWAY_READY','I_REQUEST_SIGNING','I_GET_NONCE','I_GET_NONCE_RESPONSE','I_HEARTBEAT','I_PRESENTATION','I_DISCOVER','I_DISCOVER_RESPONSE','I_HEARTBEAT_RESPONSE','I_LOCKED ','I_PING','I_PONG','I_REGISTRATION_REQUEST','I_REGISTRATION_RESPONSE','I_DEBUG','I_SIGNAL_REPORT_REQUEST','I_SIGNAL_REPORT_REVERSE','I_SIGNAL_REPORT_RESPONSE','I_PRE_SLEEP_NOTIFICATION','I_POST_SLEEP_NOTIFICATION']
+mysInternalTypes = ['battery_level','time','version','id_request','id_response','inclusion_mode','config','find_parent','find_parent_response','log_message','children','sketch_name','sketch_version','reboot','gateway_ready','request_signing','get_nonce','get_nonce_response','heartbeat','presentation','discover','discover_response','heartbeat_response','locked ','ping','pong','registration_request','registration_response','debug','report_request','report_reverse','report_response','pre_sleep_notification','post_sleep_notification']
 
-mysStreamCodes 	= ['ST_FIRMWARE_CONFIG_REQUEST','ST_FIRMWARE_CONFIG_RESPONSE','ST_FIRMWARE_REQUEST','ST_FIRMWARE_RESPONSE']
+mysStreamCodes 	= ['ST_FIRMWARE_CONFIG_REQUEST','ST_FIRMWARE_CONFIG_RESPONSE','ST_FIRMWARE_REQUEST','ST_FIRMWARE_RESPONSE','ST_SOUND','ST_IMAGE']
 mysStreamTypes	= ['firmware_config_request','firmware_config_response','firmware_request','firmware_response','sound','image']
+
+import re
+def pt(string):
+	# return string.rstrip().replace(' ', '')
+	# return ''.join(e for e in string if e.isalnum())
+#	return re.sub('[^A-Za-z0-9.._<sp>]+', '', string)
+	#return re.sub('[^a-zA-Z0-9.._<sp>\r\n-_x*.]+', '^', string.encode("utf-8"))
+	return re.sub('[^A-Za-z0-9.._\r\n-_x*.<sp> ]+', ' ', string)
+	#lst = list(''.join(e for e in string if e.isalnum())) 
+	#news = [re.sub('[^a-zA-Z0-9\r\n-_x*.]', '', str(i)) for i in lst]
+	#news = [hex(ord(i)) for i in lst]
+	#news = [char if char.isspace() else hex(ord(char)) for char in lst]
+	#return ''.join(news)
+	
+def pt2(string):
+	legal = set('.,;/%°?~+-_abcdefghijklmnopqrstuvwxyz0123456789')
+	s = ''.join(char if char.lower() in legal else ' ' for char in string)
+	return s
+
+def toInt(strValue):
+	try:
+		value = int(strValue)
+	except Exception as e:
+		print('Error: ' + str(e))
+		value = strValue
+	return value
 
 def parseMyMessage(message):
 	# cut the '\n' at the end of each line
-	message = message.strip('\n')
-	parts 		= message.split(";") 
-	mynodeid 	= int(parts[0])
-	mychildid 	= int(parts[1])
-	mycommand 	= int(parts[2])
-	myack 		= int(parts[3])
-	mytype 		= int(parts[4])
-	mypayload	= parts[5]
+# 	message = message.strip('\n')
+	message = pt2(message)
+	try:
+		parts 		= message.split(";") 
+		# try:
+		# 	mynodeid 	= int(parts[0])
+		# except Exception as e:
+		# 	print('Error: ' + str(e))
+		mynodeid 	= toInt(parts[0])
+		mychildid 	= toInt(parts[1])
+		mycommand 	= toInt(parts[2])
+		myack 		= toInt(parts[3])
+		mytype 		= toInt(parts[4])
+		mypayload	= parts[5]
 
-	cmdTypes = 'n/a'
-	unit = ''
-	if (mycommand == 0): # presentation
-		cmdTypes = mysPresenationTypes[mytype]
-		cmdCodes = mysPresenationCodes[mytype]
-	if ((mycommand == 1) or (mycommand == 2)): # set/req
-		cmdTypes = mysSetReqTypes[mytype]	
-		cmdCodes = mysSetReqCodes[mytype]	
-		unit = mysSetReqUnits[mytype]
-	if (mycommand == 3): # internal
-		cmdTypes = mysInternalTypes[mytype]
-		cmdCodes = mysInternalCodes[mytype]
-	if (mycommand == 4): # stream 
-		cmdTypes = mysStreamTypes[mytype]
-		cmdCodes = mysStreamCodes[mytype]
+		cmdTypes = 'n/a'
+		unit = ''
+		if (mycommand == 0): # presentation
+			cmdTypes = mysPresenationTypes[mytype]
+			cmdCodes = mysPresenationCodes[mytype]
+		if ((mycommand == 1) or (mycommand == 2)): # set/req
+			cmdTypes = mysSetReqTypes[mytype]	
+			cmdCodes = mysSetReqCodes[mytype]	
+			unit = mysSetReqUnits[mytype]
+		if (mycommand == 3): # internal
+			cmdTypes = mysInternalTypes[mytype]
+			cmdCodes = mysInternalCodes[mytype]
+		if (mycommand == 4): # stream 
+			cmdTypes = mysStreamTypes[mytype]
+			cmdCodes = mysStreamCodes[mytype]
 
-	now = datetime.datetime.now()
-	# timestr = unicode(now.replace(microsecond=0)).strftime("%Y-%m-%d %H:%M:%S")
-	timestr = now.strftime("%Y-%m-%d %H:%M:%S")
-	# print '%s: node[%3d] child[%3d] ack:%d %-15s %-25s | %s %s' % (timestr, mynodeid, mychildid, myack, mysCommands[mycommand], cmdTypes, mypayload, unit)
-	print '%s: node[%3d] child[%3d] ack:%d %-15s %-25s | %s %s' % (timestr, mynodeid, mychildid, myack, mysCommandCodes[mycommand], cmdCodes, mypayload, unit)
+		now = datetime.datetime.now()
+		# timestr = unicode(now.replace(microsecond=0)).strftime("%Y-%m-%d %H:%M:%S")
+		timestr = now.strftime("%Y-%m-%d %H:%M:%S")
+		# print '%s: node[%3d] child[%3d] ack:%d %-15s %-25s | %s %s' % (timestr, mynodeid, mychildid, myack, mysCommands[mycommand], cmdTypes, mypayload, unit)
+		mypayload += " "+unit
+		print ('%s: node[%3s] child[%3s] ack:%s %-15s %-25s | %-25s \traw:[%s]' % (timestr, mynodeid, mychildid, myack, mysCommandCodes[mycommand], cmdCodes, pt2(mypayload), message))
+#		print ('\r\n')
+		pass
 
-
+	except Exception as e:
+		print (e)
+	else:
+		pass
 
 def main():
 	import argparse
 
 	parser = argparse.ArgumentParser(description='Read and parse messages from MySensors Gateway.')
+	parser.add_argument("-g", "--gateway", default="MYSD1MiniGateway", help='Ip address of the gateway.')
 	parser.add_argument("-p", "--port", type=int, default=5003, help='port [default: 5003].')
-	parser.add_argument("gateway", default="192.168.2.44", help='Ip address of the gateway.')
+	parser.add_argument("-n", "--nodeid", help='NodeID (e.g. 100)')
+	parser.add_argument("-t", "--type", help='firmware type (e.g. 1)')
+	parser.add_argument("-v", "--version", help='firmware version (e.g. 1)')
+	parser.add_argument("-f", "--file", help='/path/to/filename.hex')
 	args = parser.parse_args()
 
 	# server_address = (args.gateway, args.port)
-	print "connecting to %s port %s" % (args.gateway, args.port)
+	print("connecting to %s port %s" % (args.gateway, args.port))
 
 	# Create a TCP/IP socket
 	try:
 		#create an AF_INET, STREAM socket (TCP)
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	except socket.error, msg:
-		print 'Failed to create socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1]
+	except socket.error as msg:
+		print('Failed to create socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1])
 		sys.exit();
 
 	try:
 		# remote_ip = socket.gethostbyname( host )
 		sock = socket.create_connection((args.gateway, args.port)) 
-	except socket.error, msg:
-		print 'Failed to connect to socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1]
+	except socket.error as msg:
+		print('Failed to connect to socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1])
 		sys.exit()
 
 	try:    
@@ -107,10 +151,10 @@ def main():
 			data = sock.recv(TCP_RECV_BUFFER_SIZE)
 			parseMyMessage(data)
 	except KeyboardInterrupt:
-		print 'closing socket'
+		print ('closing socket')
 		sock.close()
 	finally:
-		print 'closing socket'
+		print ('closing socket')
 		sock.close()
 	sys.exit(0)	
 
