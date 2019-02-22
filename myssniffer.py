@@ -10,6 +10,7 @@
 	history:
 	1.0			2017-04-21		1st rough basic version (read/parse messages only)	
 	2.0			2018-01-13		compatibility to mysensors 2.2
+	2.1			2018-02-22		better parsing of multiple line messages and cleaning bad chars in messages
 
 """
 
@@ -40,9 +41,10 @@ mysInternalTypes = ['battery_level','time','version','id_request','id_response',
 mysStreamCodes 	= ['ST_FIRMWARE_CONFIG_REQUEST','ST_FIRMWARE_CONFIG_RESPONSE','ST_FIRMWARE_REQUEST','ST_FIRMWARE_RESPONSE','ST_SOUND','ST_IMAGE']
 mysStreamTypes	= ['firmware_config_request','firmware_config_response','firmware_request','firmware_response','sound','image']
 
-def pt2(string):
+	
+def clrstr(string):
 	legal = set('.,;/%°?~+-_abcdefghijklmnopqrstuvwxyz0123456789')
-	s = ''.join(char if char.lower() in legal else ' ' for char in string)
+	s = ''.join(char if char.lower() in legal else '' for char in string)
 	return s
 
 def toInt(strValue):
@@ -55,8 +57,7 @@ def toInt(strValue):
 
 def parseMyMessage(message):
 	# cut the '\n' at the end of each line
-# 	message = message.strip('\n')
-	message = pt2(message)
+ 	message = message.strip('\n')
 	try:
 		parts 		= message.split(";") 
 		# try:
@@ -91,7 +92,7 @@ def parseMyMessage(message):
 		timestr = now.strftime("%Y-%m-%d %H:%M:%S")
 		# print '%s: node[%3d] child[%3d] ack:%d %-15s %-25s | %s %s' % (timestr, mynodeid, mychildid, myack, mysCommands[mycommand], cmdTypes, mypayload, unit)
 		mypayload += " "+unit
-		print ('%s: node[%3s] child[%3s] ack:%s %-15s %-25s | %-25s \traw:[%s]' % (timestr, mynodeid, mychildid, myack, mysCommandCodes[mycommand], cmdCodes, pt2(mypayload), message))
+		print ('%s: node[%3s] child[%3s] ack:%s %-15s %-25s | %-25s \traw:[%s]' % (timestr, mynodeid, mychildid, myack, mysCommandCodes[mycommand], cmdCodes, clrstr(mypayload), message))
 #		print ('\r\n')
 		pass
 
@@ -136,8 +137,11 @@ def main():
 		while (True):
 			pass
 			#Now receive data
-			data = sock.recv(TCP_RECV_BUFFER_SIZE)
-			parseMyMessage(data)
+			raw = sock.recv(TCP_RECV_BUFFER_SIZE)
+			lines = raw.split('\n')
+			num = len(lines)-1
+			for x in range(0, num):
+				parseMyMessage(lines[x])
 	except KeyboardInterrupt:
 		print ('closing socket')
 		sock.close()
