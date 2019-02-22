@@ -10,7 +10,7 @@
 	history:
 	1.0			2017-04-21		1st rough basic version (read/parse messages only)	
 	2.0			2018-01-13		compatibility to mysensors 2.2
-	2.1			2018-02-22		better parsing of multiple line messages and cleaning bad chars in messages
+	2.1			2019-02-22		better parsing of multiple line messages and cleaning bad chars in messages
 
 """
 
