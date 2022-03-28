@@ -1,16 +1,17 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-""" 
+"""
 	MYSSniffer 	Dirk Clemens (iot@adcore.de)
 
     Usage: 		python tcp port
     Example: 	python 192.168.2.44 -p 5003
 
 	history:
-	1.0			2017-04-21		1st rough basic version (read/parse messages only)	
+	1.0			2017-04-21		1st rough basic version (read/parse messages only)
 	2.0			2018-01-13		compatibility to mysensors 2.2
-	2.1			2019-02-22		better parsing of multiple line messages and cleaning bad chars in messages
+	2.1			2018-02-22		better parsing of multiple line messages and cleaning bad chars in messages
+	2.2.			2022-03-27		converted to python3
 
 """
 
@@ -19,7 +20,7 @@ import sys
 import datetime
 import re
 
-TCP_RECV_BUFFER_SIZE = 1024 
+TCP_RECV_BUFFER_SIZE = 1024
 
 # https://www.mysensors.org/download/serial_api_20#message-structure
 # node-id ; child-sensor-id ; command ; ack ; type ; payload \n
@@ -51,15 +52,15 @@ def toInt(strValue):
 	try:
 		value = int(strValue)
 	except Exception as e:
-		print('Error: ' + str(e))
+		print(('Error: ' + str(e)))
 		value = strValue
 	return value
 
 def parseMyMessage(message):
 	# cut the '\n' at the end of each line
- 	message = message.strip('\n')
+	message = message.strip('\n')
 	try:
-		parts 		= message.split(";") 
+		parts 		= message.split(";")
 		# try:
 		# 	mynodeid 	= int(parts[0])
 		# except Exception as e:
@@ -77,13 +78,13 @@ def parseMyMessage(message):
 			cmdTypes = mysPresenationTypes[mytype]
 			cmdCodes = mysPresenationCodes[mytype]
 		if ((mycommand == 1) or (mycommand == 2)): # set/req
-			cmdTypes = mysSetReqTypes[mytype]	
-			cmdCodes = mysSetReqCodes[mytype]	
+			cmdTypes = mysSetReqTypes[mytype]
+			cmdCodes = mysSetReqCodes[mytype]
 			unit = mysSetReqUnits[mytype]
 		if (mycommand == 3): # internal
 			cmdTypes = mysInternalTypes[mytype]
 			cmdCodes = mysInternalCodes[mytype]
-		if (mycommand == 4): # stream 
+		if (mycommand == 4): # stream
 			cmdTypes = mysStreamTypes[mytype]
 			cmdCodes = mysStreamCodes[mytype]
 
@@ -92,7 +93,7 @@ def parseMyMessage(message):
 		timestr = now.strftime("%Y-%m-%d %H:%M:%S")
 		# print '%s: node[%3d] child[%3d] ack:%d %-15s %-25s | %s %s' % (timestr, mynodeid, mychildid, myack, mysCommands[mycommand], cmdTypes, mypayload, unit)
 		mypayload += " "+unit
-		print ('%s: node[%3s] child[%3s] ack:%s %-15s %-25s | %-25s \traw:[%s]' % (timestr, mynodeid, mychildid, myack, mysCommandCodes[mycommand], cmdCodes, clrstr(mypayload), message))
+		print(('%s: node[%3s] child[%3s] ack:%s %-15s %-25s | %-25s \traw:[%s]' % (timestr, mynodeid, mychildid, myack, mysCommandCodes[mycommand], cmdCodes, clrstr(mypayload), message)))
 #		print ('\r\n')
 		pass
 
@@ -105,7 +106,7 @@ def main():
 	import argparse
 
 	parser = argparse.ArgumentParser(description='Read and parse messages from MySensors Gateway.')
-	parser.add_argument("-g", "--gateway", default="MYSD1MiniGateway", help='Ip address of the gateway.')
+	parser.add_argument("-g", "--gateway", default="GatewayWemosD1Mini", help='Ip address of the gateway.') #MYSD1MiniGateway
 	parser.add_argument("-p", "--port", type=int, default=5003, help='port [default: 5003].')
 	parser.add_argument("-n", "--nodeid", help='NodeID (e.g. 100)')
 	parser.add_argument("-t", "--type", help='firmware type (e.g. 1)')
@@ -114,31 +115,32 @@ def main():
 	args = parser.parse_args()
 
 	# server_address = (args.gateway, args.port)
-	print("connecting to %s port %s" % (args.gateway, args.port))
+	print(("connecting to %s port %s" % (args.gateway, args.port)))
 
 	# Create a TCP/IP socket
 	try:
 		#create an AF_INET, STREAM socket (TCP)
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	except socket.error as msg:
-		print('Failed to create socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1])
+		print(('Failed to create socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1]))
 		sys.exit();
 
 	try:
 		# remote_ip = socket.gethostbyname( host )
-		sock = socket.create_connection((args.gateway, args.port)) 
+		sock = socket.create_connection((args.gateway, args.port))
 	except socket.error as msg:
-		print('Failed to connect to socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1])
+		print(('Failed to connect to socket. Error code: ' + str(msg[0]) + ' , Error message : ' + msg[1]))
 		sys.exit()
 
-	try:    
+	try:
 		# # Send data
 		# sock.sendall(message)
 		while (True):
 			pass
 			#Now receive data
 			raw = sock.recv(TCP_RECV_BUFFER_SIZE)
-			lines = raw.split('\n')
+			#print(type(raw))
+			lines = raw.decode('utf-8').split('\n')
 			num = len(lines)-1
 			for x in range(0, num):
 				parseMyMessage(lines[x])
@@ -148,8 +150,8 @@ def main():
 	finally:
 		print ('closing socket')
 		sock.close()
-	sys.exit(0)	
+	sys.exit(0)
 
 
-if __name__ == "__main__":		
+if __name__ == "__main__":
 	main()
